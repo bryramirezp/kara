@@ -15,7 +15,7 @@
 ; the version is written down in exactly one place. The fallback only matters
 ; when someone runs ISCC by hand.
 #ifndef AppVersion
-  #define AppVersion "0.3.1"
+  #define AppVersion "0.3.2"
 #endif
 
 ; Set by packaging/build.py --gpu. Only the file name changes: the AppId is

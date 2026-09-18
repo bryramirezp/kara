@@ -92,6 +92,10 @@ def rules(ver, mb, gpu_mb):
          r'("softwareVersion":\s*")[^"]*(")',
          r"\g<1>%s\g<2>" % ver),
 
+        ("docs/index.html",
+         r"(<!--app-version-->)[^<]*(<!--/app-version-->)",
+         r"\g<1>%s\g<2>" % ver),
+
         # Only the hand-run fallback: build.py passes /DAppVersion, which wins.
         ("packaging/installer.iss",
          r'(#define AppVersion ")[^"]*(")',

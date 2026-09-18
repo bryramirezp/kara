@@ -5,7 +5,7 @@ Hold the configured hotkey to record. Release to transcribe and paste.
 Default hotkey: Insert
 """
 
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 
 import sys
 import os
@@ -314,7 +314,7 @@ DEFAULT_SETTINGS = {
     "model":    "auto",
     "hotkey":   "key:insert",
     "mic":      "auto",
-    "language": "es",
+    "language": "auto",
     "ui_language": "es",
     "theme":    "dark",
     # "digits" writes numbers as numbers; "words" leaves whatever Whisper said.
@@ -329,7 +329,7 @@ NUMBER_MODES  = ["digits", "words"]
 COMMAND_MODES = ["off", "safe", "all"]
 
 # Languages you can dictate in. Stored as codes, shown as names.
-# There is no "auto" on purpose: see _migrate().
+# UI languages remain explicit; only dictation offers automatic detection.
 LANGUAGE_NAMES = {
     "es": "Spanish",
     "en": "English",
@@ -339,12 +339,17 @@ LANGUAGE_NAMES = {
     "it": "Italian",
 }
 LANGUAGE_CODES = list(LANGUAGE_NAMES)
+DICTATION_LANGUAGE_CODES = ["auto", *LANGUAGE_CODES]
 NAME_TO_CODE   = {name: code for code, name in LANGUAGE_NAMES.items()}
 
 def language_name(code):
-    return LANGUAGE_NAMES.get(code, LANGUAGE_NAMES[DEFAULT_SETTINGS["language"]])
+    if code == "auto":
+        return karai18n.t("language_auto")
+    return LANGUAGE_NAMES.get(code, LANGUAGE_NAMES[DEFAULT_SETTINGS["ui_language"]])
 
 def language_code(name):
+    if name == karai18n.t("language_auto"):
+        return "auto"
     return NAME_TO_CODE.get(name, DEFAULT_SETTINGS["language"])
 
 app_settings = dict(DEFAULT_SETTINGS)  # module-wide view of current settings
@@ -364,18 +369,17 @@ def load_settings():
 
 def _migrate(s):
     """Bring a settings file written by an older build up to date."""
-    # "auto" language used to mean "let Whisper guess". Guessing costs a detection
-    # pass on every recording and gets it wrong on short clips, so the option is
-    # gone and old files fall back to the default language.
-    if s.get("language") not in LANGUAGE_CODES:
+    # Preserve explicit choices and old automatic settings alike.
+    if s.get("language") not in DICTATION_LANGUAGE_CODES:
         s["language"] = DEFAULT_SETTINGS["language"]
 
     # New in 0.3.1. A settings file written by an older build has no such key,
     # and the installer only seeds one on a first install (see installer.iss).
     # Best guess: whatever language they already dictate in, since it is the
-    # same 6-code list and most people speak the language they dictate in.
+    # same 6-code list. Automatic dictation is never a UI language.
     if s.get("ui_language") not in LANGUAGE_CODES:
-        s["ui_language"] = s["language"]
+        s["ui_language"] = (s["language"] if s["language"] in LANGUAGE_CODES
+                            else DEFAULT_SETTINGS["ui_language"])
 
     # "gpu" can only ever fail where the CUDA libraries are missing, which is
     # the ordinary download and any machine without a supported card. Settings
@@ -1242,11 +1246,12 @@ def _transcribe(audio_data, sr):
         gain = min(0.95 / peak, 30.0)  # cap so background noise isn't blown up
         audio_data = audio_data * gain
 
-        # Always an explicit language: skipping detection saves a pass over the
-        # audio and avoids wrong guesses on short clips.
-        language = app_settings.get("language", DEFAULT_SETTINGS["language"])
-        if language not in LANGUAGE_CODES:
+        # Snapshot preferences for this dictation, including its text policy.
+        settings = dict(app_settings)
+        language = settings.get("language", DEFAULT_SETTINGS["language"])
+        if language not in DICTATION_LANGUAGE_CODES:
             language = DEFAULT_SETTINGS["language"]
+        automatic = language == "auto"
 
         # Beam 5 weighs five candidate transcriptions and costs about four
         # times beam 1, for a difference that on one dictated sentence is
@@ -1269,7 +1274,8 @@ def _transcribe(audio_data, sr):
         try:
             with trace.span("transcribe"):
                 segments, info = model_obj.transcribe(
-                    audio_data, language=language, beam_size=beam,
+                    audio_data, language=None if automatic else language,
+                    multilingual=automatic, task="transcribe", beam_size=beam,
                     initial_prompt=prompt,
                     # Push-to-talk audio always starts and ends with silence --
                     # the key goes down before you speak and up after you stop --
@@ -1284,10 +1290,16 @@ def _transcribe(audio_data, sr):
             model_lock.release()
 
         raw = text
-        text = karatext.polish(
-            text, language,
-            numbers=(app_settings.get("numbers", "digits") == "digits"),
-            voice_commands=app_settings.get("commands", "safe"))
+        if automatic:
+            # info.language describes initial detection, not each sentence.
+            # Keep Whisper's punctuation: an English question in mixed speech
+            # must not acquire Spanish opening marks or spoken-command edits.
+            text = karatext.fix_caps_and_spacing(text, language=None)
+        else:
+            text = karatext.polish(
+                text, language,
+                numbers=(settings.get("numbers", "digits") == "digits"),
+                voice_commands=settings.get("commands", "safe"))
         trace.set(beam=beam, device=model_device, threads=model_threads,
                   primed=bool(prompt),
                   # Lengths, not text. A gap between the two means the text layer
@@ -1297,6 +1309,9 @@ def _transcribe(audio_data, sr):
 
         # The length of what was said, never what was said. See _Trace.
         trace.set(chars=len(text), peak=round(peak, 4), lang=language)
+        if automatic:
+            trace.set(initial_lang=info.language,
+                      initial_lang_probability=round(info.language_probability, 4))
 
         if text:
             ui_queue.put(("log", text, "said"))
@@ -2028,7 +2043,7 @@ class KaraApp(ctk.CTk):
         self._lang_var = ctk.StringVar(
             value=language_name(self._settings.get("language", DEFAULT_SETTINGS["language"])))
         self._lang_menu = option_menu(
-            self._lang_var, [LANGUAGE_NAMES[c] for c in LANGUAGE_CODES])
+            self._lang_var, [language_name(c) for c in DICTATION_LANGUAGE_CODES])
         hint(karai18n.t("hint_language"))
 
         # ── App language (UI text)
@@ -2068,14 +2083,15 @@ class KaraApp(ctk.CTk):
         self._numbers_var = ctk.StringVar(
             value=self._settings.get("numbers", DEFAULT_SETTINGS["numbers"]))
         self._numbers_seg = segmented(NUMBER_MODES, self._numbers_var)
-        hint(karai18n.t("hint_numbers"))
+        self._numbers_hint = hint(karai18n.t("hint_numbers"))
 
         self._commands_var = ctk.StringVar(
             value=self._settings.get("commands", DEFAULT_SETTINGS["commands"]))
         self._commands_seg = segmented(COMMAND_MODES, self._commands_var)
         self._commands_hint = hint(self._commands_hint_text())
-        self._commands_var.trace_add("write", lambda *_: self._commands_hint.configure(
-            text=self._commands_hint_text()))
+        self._commands_var.trace_add("write", lambda *_: self._update_text_controls())
+        self._lang_var.trace_add("write", lambda *_: self._update_text_controls())
+        self._update_text_controls()
 
         # ── Hardware info
         self._hw_label = ctk.CTkLabel(body, text="", font=("Consolas", 9),
@@ -2095,6 +2111,16 @@ class KaraApp(ctk.CTk):
         self._diag_btn.pack(fill="x", pady=(0, 4))
         self._diag_hint = hint(karai18n.t("hint_diagnostics"))
 
+    def _update_text_controls(self):
+        automatic = language_code(self._lang_var.get()) == "auto"
+        state = "disabled" if automatic else "normal"
+        self._numbers_seg.configure(state=state)
+        self._commands_seg.configure(state=state)
+        self._numbers_hint.configure(text=karai18n.t(
+            "hint_text_auto" if automatic else "hint_numbers"))
+        self._commands_hint.configure(
+            text="" if automatic else self._commands_hint_text())
+
     # ── Theme ─────────────────────────────────────────────────────────────────
     def _on_theme_change(self, name):
         if name == self._settings.get("theme", "dark"):
@@ -2108,6 +2134,8 @@ class KaraApp(ctk.CTk):
     # ── App language ──────────────────────────────────────────────────────────
     def _on_ui_language_change(self, name):
         code = language_code(name)
+        if code not in LANGUAGE_CODES:
+            return
         if code == self._settings.get("ui_language"):
             return
         self._settings["ui_language"] = code

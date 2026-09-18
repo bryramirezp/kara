@@ -4,8 +4,31 @@ All notable changes to Kara. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
-Every version below is a published release with an installer:
+Numbered versions below are published releases with installers:
 [all releases](https://github.com/bryramirezp/kara/releases).
+
+## [0.3.2] - 2026-09-18
+
+Automatic dictation language is back: switch between Spanish and English
+dictations without changing Settings.
+
+### Added
+
+- **Automatic dictation language**, now the default for new settings. Existing
+  language choices are preserved. Whisper detects the language of each dictation.
+- Automatic keeps Whisper's punctuation and numbers, with generic spacing and
+  capitalization cleanup. It does not apply Kara's extra number conversions,
+  spoken commands or Spanish opening marks to mixed speech. Those controls are
+  disabled in Automatic; their saved choices return with a fixed language.
+- Diagnostics distinguish automatic mode from the initially detected language;
+  the initial language is not a label for the whole mixed recording.
+
+### Note
+
+- Mixing languages in one recording can cause errors, including omitted or
+  translated passages. Selecting a fixed language can improve accuracy,
+  especially on short recordings. Reliable mixed-language dictation is not
+  promised by this release.
 
 ## [0.3.1] - 2026-08-21
 
@@ -196,6 +219,7 @@ the website advertises.
 
 First release, under the name Dictation Tool.
 
+[0.3.2]: https://github.com/bryramirezp/kara/releases/tag/v0.3.2
 [0.3.1]: https://github.com/bryramirezp/kara/releases/tag/v0.3.1
 [0.3.0]: https://github.com/bryramirezp/kara/releases/tag/v0.3.0
 [0.2.4]: https://github.com/bryramirezp/kara/releases/tag/v0.2.4
