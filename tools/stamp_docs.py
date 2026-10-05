@@ -29,12 +29,6 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# The installer the website links to. Its size is only knowable after a build,
-# so when it is missing the size rules below sit out this run rather than
-# guessing -- checking out the repo and running --check must not fail just
-# because nothing has been built yet.
-INSTALLER     = os.path.join(ROOT, "dist", "Kara-Setup.exe")
-
 SITE = "https://bryramirezp.github.io/kara/"
 
 
@@ -46,8 +40,9 @@ def version():
     return m.group(1)
 
 
-def installer_mb(path=INSTALLER):
+def installer_mb(ver):
     """Megabytes, rounded the way a person would say it out loud."""
+    path = os.path.join(ROOT, "dist", "Kara-Setup-%s.exe" % ver)
     if not os.path.exists(path):
         return None
     return round(os.path.getsize(path) / 1_000_000)
@@ -180,13 +175,13 @@ def main():
     args = ap.parse_args()
 
     ver = version()
-    mb  = installer_mb()
+    mb  = installer_mb(ver)
     print("Kara %s%s%s" % (
         ver,
         "" if mb is None else ", installer %d MB" % mb,
         ""))
     if mb is None:
-        print("  (no dist/Kara-Setup.exe -- leaving the size alone)")
+        print("  (no versioned installer in dist/ -- leaving the size alone)")
     pending = {}
     for rel, pattern, repl in rules(ver, mb):
         path = os.path.join(ROOT, rel)
