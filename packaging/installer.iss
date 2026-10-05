@@ -15,16 +15,7 @@
 ; the version is written down in exactly one place. The fallback only matters
 ; when someone runs ISCC by hand.
 #ifndef AppVersion
-  #define AppVersion "0.3.2"
-#endif
-
-; Set by packaging/build.py --gpu. Only the file name changes: the AppId is
-; deliberately the same for both, so installing one over the other upgrades in
-; place rather than leaving two copies of Kara on the machine.
-#ifdef GpuBuild
-  #define Flavour "-GPU"
-#else
-  #define Flavour ""
+  #define AppVersion "0.3.3"
 #endif
 
 [Setup]
@@ -44,13 +35,20 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 
 OutputDir=..\dist
-OutputBaseFilename=Kara-Setup{#Flavour}-{#AppVersion}
+OutputBaseFilename=Kara-Setup-{#AppVersion}
 SetupIconFile=..\assets\icon.ico
 UninstallDisplayIcon={app}\{#AppExeName}
 WizardStyle=modern
 Compression=lzma2/max
 SolidCompression=yes
 VersionInfoVersion={#AppVersion}
+
+#ifdef SignKara
+; packaging/build.py passes the provider command as /Skara=... and signs the
+; setup and uninstaller after Kara.exe has already been signed.
+SignTool=kara
+SignedUninstaller=yes
+#endif
 
 [Languages]
 Name: "english";             MessagesFile: "compiler:Default.isl"
@@ -64,17 +62,6 @@ Name: "italian";              MessagesFile: "compiler:Languages\Italian.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; Flags: unchecked
 Name: "startup";     Description: "Start Kara when Windows starts"
 
-[InstallDelete]
-#ifndef GpuBuild
-; The two installers share an AppId on purpose, so that either upgrades the
-; other in place rather than leaving two copies of Kara on the machine. The
-; price is this: Inno only removes what it installed itself, so putting the
-; processor build over the GPU one would leave 925 MB of CUDA libraries sitting
-; in the install folder, outliving even the uninstaller. PyInstaller's onedir
-; layout puts them under _internal.
-Type: filesandordirs; Name: "{app}\_internal\nvidia"
-#endif
-
 [Files]
 Source: "..\dist\Kara\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
@@ -82,7 +69,18 @@ Source: "..\dist\Kara\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs 
 Name: "{group}\{#AppName}";            Filename: "{app}\{#AppExeName}"
 Name: "{group}\Uninstall {#AppName}";  Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#AppName}";      Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
-Name: "{userstartup}\{#AppName}";      Filename: "{app}\{#AppExeName}"; Tasks: startup
+
+[Registry]
+; Visible in Windows Settings > Apps > Startup, unlike a shortcut buried in
+; the Startup folder.  Quotes keep the per-user AppData path safe if it has
+; spaces, and uninsdeletevalue removes it when Kara is uninstalled.
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; \
+    ValueName: "Kara"; ValueData: """{app}\{#AppExeName}"""; Flags: uninsdeletevalue; Tasks: startup
+
+[InstallDelete]
+; 0.3.2 used this legacy mechanism.  Remove it on every install so an upgrade
+; cannot start two copies at login.
+Type: files; Name: "{userstartup}\{#AppName}.lnk"
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#AppName}}"; \
@@ -112,6 +110,11 @@ var
   SettingsDir, SettingsFile: String;
 begin
   if CurStep = ssPostInstall then begin
+    // A user can deselect the task while upgrading. [Registry] then does not
+    // create a value, but it also cannot remove the value from a prior install.
+    if not WizardIsTaskSelected('startup') then
+      RegDeleteValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'Kara');
+
     SettingsDir := ExpandConstant('{localappdata}\Kara');
     SettingsFile := SettingsDir + '\settings.json';
     // Only seed on a first install. An upgrade or repair must never overwrite

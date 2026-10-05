@@ -18,6 +18,11 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      # Configure this secret with a provider command containing {file}; the
+      # build replaces it with each binary and Inno Setup replaces it with $f.
+      # Keep certificates and provider credentials outside this repository.
+      KARA_SIGN_COMMAND: ${{ secrets.KARA_SIGN_COMMAND }}
 
     steps:
       - uses: actions/checkout@v4
@@ -58,18 +63,26 @@ jobs:
       - name: Check the docs quote this version
         run: python tools/stamp_docs.py --check
 
-      # Ordinary build first, and on its own: it is the one whose size the
-      # website quotes, and stamp_docs -- which build.py runs at the end -- must
-      # not see the 1.2 GB file when it works that number out.
-      - name: Build the processor installer
+      - name: Build the optional NVIDIA component
+        run: python packaging/build.py --gpu-component
+
+      - name: Build the single installer
         run: python packaging/build.py
 
-      - name: Build the GPU installer
-        run: python packaging/build.py --gpu
-
-      # Only now, with both files present, so the page can quote both sizes.
       - name: Stamp both sizes into the docs
         run: python tools/stamp_docs.py
+
+      - name: Verify release signatures
+        if: startsWith(github.ref, 'refs/tags/') && env.KARA_SIGN_COMMAND != ''
+        shell: pwsh
+        run: |
+          $signed = Get-ChildItem dist/Kara/Kara.exe, dist/Kara-Setup-*.exe
+          foreach ($file in $signed) {
+            $signature = Get-AuthenticodeSignature -FilePath $file
+            if ($signature.Status -ne 'Valid') {
+              throw "$($file.Name) has invalid signature status: $($signature.Status)"
+            }
+          }
 
       # The size is a different matter. It is only knowable after a build, and
       # this build is not the maintainer's -- a different dependency resolution
@@ -93,6 +106,7 @@ jobs:
           name: Kara
           path: |
             dist/Kara-Setup-*.exe
+            dist/Kara-GPU-*.zip
             dist/Kara-*-portable.zip
             dist/SHA256SUMS*.txt
 
@@ -103,13 +117,9 @@ jobs:
         shell: pwsh
         run: |
           $tag = "${{ github.ref_name }}"
-          # Four executables now: the two versioned installers and the two
-          # fixed-name aliases the website's buttons point at. One wildcard
-          # catches all of them -- listing the aliases separately would upload
-          # Kara-Setup-GPU.exe twice, since it matches Kara-Setup-*.exe as well.
-          # Sorted unique for the same reason, cheaply.
           $files = @(
             (Get-Item dist/Kara-Setup*.exe).FullName
+            (Get-Item dist/Kara-GPU-*.zip).FullName
             (Get-Item dist/Kara-*-portable.zip).FullName
             (Get-Item dist/SHA256SUMS*.txt).FullName
           ) | Sort-Object -Unique

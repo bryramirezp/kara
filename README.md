@@ -11,7 +11,7 @@ No account, no cloud, no subscription.
 
 <img src="docs/screenshot-main-dark.png" alt="The Kara window, listing sentences that have been dictated" width="300">
 
-[**Download for Windows**](https://github.com/bryramirezp/kara/releases/download/v0.3.2/Kara-Setup-0.3.2.exe)
+[**Download for Windows**](https://github.com/bryramirezp/kara/releases/download/v0.3.3/Kara-Setup-0.3.3.exe)
  · [Website](https://bryramirezp.github.io/kara/)
  · [What's changed](CHANGELOG.md)
  · [All files](https://github.com/bryramirezp/kara/releases/latest)
@@ -46,15 +46,11 @@ that. It dictates text, and that part is free and works with no connection.
 
 ## Download
 
-**[Download the installer](https://github.com/bryramirezp/kara/releases/download/v0.3.2/Kara-Setup-0.3.2.exe)**
+**[Download the installer](https://github.com/bryramirezp/kara/releases/download/v0.3.3/Kara-Setup-0.3.3.exe)**
 — <!--dl-size-->73 MB<!--/dl-size-->, for Windows 10 and 11. The link starts the download straight away.
 
-Have an NVIDIA graphics card? There is a second, much larger installer that
-carries the CUDA libraries with it:
-**[Download the GPU installer](https://github.com/bryramirezp/kara/releases/download/v0.3.2/Kara-Setup-GPU-0.3.2.exe)**
-— <!--dl-size-gpu-->572 MB<!--/dl-size-gpu-->. Same app, same settings; it just
-also knows how to use the card. Take the ordinary one if you are not sure — it
-works everywhere, and you can install the other over the top of it later.
+If Kara detects an NVIDIA card, it offers the optional GPU support from Settings
+after installation. Everyone downloads this same installer.
 
 Run it and you are done. You do not need to install Python or anything else.
 
@@ -97,29 +93,18 @@ the `F13`–`F24` keys, or a side button on your mouse.
 
 ## Using a graphics card
 
-There are two installers. The ordinary one runs on your processor: it is small,
-it works on any machine, and on a long dictation it is the slow one. The GPU
-installer carries the CUDA libraries, which is why it is about eight times
-larger, and on an NVIDIA card it is not a small difference.
-
-If you have an NVIDIA card, take
-[the GPU installer](https://github.com/bryramirezp/kara/releases/download/v0.3.2/Kara-Setup-GPU-0.3.2.exe).
-You need nothing else — no CUDA Toolkit, no separate download; whatever version
-of the Toolkit you may already have installed is not used. A current graphics
-driver is the only requirement.
-
-You can install either one over the other. They are the same program and they
-share their settings.
+There is one installer. It runs on your processor everywhere. If Kara detects
+an NVIDIA card, Settings offers to download its CUDA support after installation.
+You need no CUDA Toolkit; a current graphics driver is the only requirement.
 
 **AMD and Intel cards are not supported yet.** ctranslate2, the engine
 underneath, has no backend for them on Windows, so Kara falls back to your
 processor and there is nothing in Settings that would change that. It is being
 worked on.
 
-Whichever build you have, **Device → auto** does the right thing: the card if it
-is usable, the processor if it is not. The **gpu** option only appears where the
-CUDA libraries are really present, so it can no longer be a button that breaks
-the app.
+**Device → auto** does the right thing: the card after its support is installed,
+or the processor otherwise. The **gpu** option appears only when the CUDA
+libraries really load.
 
 ### Running from source with a card
 
@@ -186,9 +171,9 @@ Spanish, English, Portuguese, French, German and Italian.
 
 ### Do I need a graphics card?
 
-No. The ordinary download runs on your processor and works on any machine. If
-you have an NVIDIA card there is a separate, larger installer that uses it; see
-[Using a graphics card](#using-a-graphics-card).
+No. The single download runs on your processor and works on any machine. If
+you have an NVIDIA card, Kara offers its optional GPU support from Settings;
+see [Using a graphics card](#using-a-graphics-card).
 
 ## Dictating numbers and punctuation
 

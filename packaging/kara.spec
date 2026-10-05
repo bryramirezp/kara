@@ -1,16 +1,12 @@
 # -*- mode: python ; coding: utf-8 -*-
 """PyInstaller build for Kara.
 
-    py -3 -m PyInstaller --noconfirm packaging/kara.spec        processor only
-    set KARA_GPU=1 && py -3 -m PyInstaller ... packaging/kara.spec   with CUDA
+    py -3 -m PyInstaller --noconfirm packaging/kara.spec
+    set KARA_GPU=1 && py -3 -m PyInstaller ... packaging/kara.spec
 
-Two builds from one spec. The NVIDIA libraries weigh 925 MB against 190 MB for
-everything else put together, which is not a reasonable download to hand
-everybody for a dictation tool -- but leaving them out of every build meant
-nobody with a card could use it either, and the people who had one did not find
-out, because the app hid the option rather than explaining it. So there is a
-second, large installer for people who have an NVIDIA card, and the ordinary one
-still falls back to the processor by itself.
+The normal build is the one small CPU application.  The GPU invocation is only
+an internal release step: packaging/build.py extracts its NVIDIA DLL tree into
+the optional, verified Kara-GPU zip and never produces a second installer.
 
 onedir rather than onefile: onefile unpacks the whole thing into a temporary
 folder on every single launch, which for 190 MB is a wait before anything even
@@ -19,6 +15,7 @@ appears on screen, and for 1.2 GB would be unusable.
 import glob
 import os
 import site
+import sys
 from PyInstaller.utils.hooks import (collect_all, collect_data_files,
                                      collect_dynamic_libs)
 
@@ -26,9 +23,32 @@ ROOT = os.path.abspath(os.path.join(SPECPATH, ".."))
 GPU = bool(os.environ.get("KARA_GPU"))
 print("== Kara spec: %s build ==" % ("GPU" if GPU else "processor-only"))
 
-datas = [(os.path.join(ROOT, "assets", "icon.ico"), "assets")]
+datas = [
+    (os.path.join(ROOT, "assets", "icon.ico"), "assets"),
+    (os.path.join(ROOT, "assets", "gpu-component.json"), "assets"),
+]
 binaries = []
 hiddenimports = []
+
+# Python 3.11 on Windows can report a valid Tcl/Tk installation as broken to
+# PyInstaller's hook.  Kara imports CustomTkinter at startup, so ship the
+# standard-library modules, DLLs and script directories explicitly.
+PYTHON_ROOT = sys.base_prefix
+TCL_DIR = next((p for p in glob.glob(os.path.join(PYTHON_ROOT, "tcl", "tcl*"))
+                if os.path.isfile(os.path.join(p, "init.tcl"))), None)
+TK_DIR = next((p for p in glob.glob(os.path.join(PYTHON_ROOT, "tcl", "tk*"))
+               if os.path.isfile(os.path.join(p, "pkgIndex.tcl"))), None)
+if not TCL_DIR or not TK_DIR:
+    raise SystemExit("Python Tcl/Tk runtime is incomplete")
+for name in ("_tkinter.pyd", "tcl86t.dll", "tk86t.dll"):
+    path = os.path.join(PYTHON_ROOT, "DLLs", name)
+    if not os.path.isfile(path):
+        raise SystemExit("Python Tcl/Tk binary is missing: " + path)
+    binaries.append((path, "."))
+datas += [(TCL_DIR, os.path.join("tcl", os.path.basename(TCL_DIR))),
+          (TK_DIR, os.path.join("tcl", os.path.basename(TK_DIR))),
+          (os.path.join(PYTHON_ROOT, "Lib", "tkinter"), "tkinter")]
+hiddenimports += ["_tkinter"]
 
 # Reads its theme JSON and its fonts from disk at runtime.
 datas += collect_data_files("customtkinter")

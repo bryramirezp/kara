@@ -7,6 +7,27 @@ All notable changes to Kara. The format follows
 Numbered versions below are published releases with installers:
 [all releases](https://github.com/bryramirezp/kara/releases).
 
+## [0.3.3] - Unreleased
+
+### Changed
+
+- **One installer for every PC.** `Kara-Setup` installs CPU support everywhere.
+  On an NVIDIA PC, Settings offers to download the optional GPU support after
+  Kara is installed, so no one has to choose between CPU and GPU downloads.
+- The optional GPU package is verified for its exact version, byte count and
+  SHA-256 before Kara extracts it. A damaged or altered package is rejected and
+  Kara continues to work on the processor.
+- Choosing “Start Kara when Windows starts” now creates the standard Windows
+  `HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run` entry. Uninstalling
+  removes it and also cleans up the legacy 0.3.2 Startup-folder shortcut.
+
+### Security
+
+- The release build prepares Authenticode signing for Kara, its installer and
+  uninstaller when a code-signing provider is configured. Production signing
+  still requires the maintainer's certificate or signing service credentials;
+  without them, releases remain unsigned.
+
 ## [0.3.2] - 2026-09-18
 
 Automatic dictation language is back: switch between Spanish and English
@@ -220,6 +241,7 @@ the website advertises.
 First release, under the name Dictation Tool.
 
 [0.3.2]: https://github.com/bryramirezp/kara/releases/tag/v0.3.2
+[0.3.3]: https://github.com/bryramirezp/kara/releases/tag/v0.3.3
 [0.3.1]: https://github.com/bryramirezp/kara/releases/tag/v0.3.1
 [0.3.0]: https://github.com/bryramirezp/kara/releases/tag/v0.3.0
 [0.2.4]: https://github.com/bryramirezp/kara/releases/tag/v0.2.4

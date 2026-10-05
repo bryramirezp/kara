@@ -1,5 +1,15 @@
 # Local state, not source
 settings.json
+.cbmignore
+.codebase-memory/
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+
+# Local knowledge graph reports and evidence
+/kara-knowledge/
 
 # Build output
 build/
