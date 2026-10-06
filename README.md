@@ -11,7 +11,8 @@ No account, no cloud, no subscription.
 
 <img src="docs/screenshot-main-dark.png" alt="The Kara window, listing sentences that have been dictated" width="300">
 
-[**Download for Windows**](https://github.com/bryramirezp/kara/releases/download/v0.3.3/Kara-Setup-0.3.3.exe)
+[**Download CPU edition**](https://github.com/bryramirezp/kara/releases/download/v0.3.4/Kara-Setup-0.3.4.exe)
+ · [**NVIDIA GPU edition**](https://github.com/bryramirezp/kara/releases/download/v0.3.4/Kara-Setup-GPU-0.3.4.exe)
  · [Website](https://bryramirezp.github.io/kara/)
  · [What's changed](CHANGELOG.md)
  · [All files](https://github.com/bryramirezp/kara/releases/latest)
@@ -46,11 +47,14 @@ that. It dictates text, and that part is free and works with no connection.
 
 ## Download
 
-**[Download the installer](https://github.com/bryramirezp/kara/releases/download/v0.3.3/Kara-Setup-0.3.3.exe)**
-— <!--dl-size-->73 MB<!--/dl-size-->, for Windows 10 and 11. The link starts the download straight away.
+| Edition | Download | Best for |
+| --- | --- | --- |
+| **CPU — works on any PC** | [Kara-Setup-0.3.4.exe](https://github.com/bryramirezp/kara/releases/download/v0.3.4/Kara-Setup-0.3.4.exe) — <!--dl-size-->73 MB<!--/dl-size--> | Every Windows PC. |
+| **NVIDIA GPU** | [Kara-Setup-GPU-0.3.4.exe](https://github.com/bryramirezp/kara/releases/download/v0.3.4/Kara-Setup-GPU-0.3.4.exe) | NVIDIA graphics card with a current driver; faster transcription. |
 
-If Kara detects an NVIDIA card, it offers the optional GPU support from Settings
-after installation. Everyone downloads this same installer.
+Both editions work on Windows 10 and 11, share your settings and models, and
+install to the same location. Installing one over the other switches editions;
+it does not delete your settings or downloaded models.
 
 Run it and you are done. You do not need to install Python or anything else.
 
@@ -74,15 +78,13 @@ To start it with Windows, tick the box during install. If you missed it, press
 
 ## Settings
 
-<img src="docs/screenshot-settings-light.png" alt="The settings panel" width="300">
-
 | Setting | What it is for |
 |---|---|
 | **Appearance** | Light or dark. Changes right away. |
 | **Hotkey** | The key you hold to record. Extra mouse buttons work too. |
 | **Microphone** | Leave it on auto unless you have several and want a specific one. |
 | **Language** | Automatic detects the language of each dictation. Picking a language can improve accuracy, especially on short clips. |
-| **Device** | Your processor, or your graphics card if you have an NVIDIA one. The installer only offers the processor — see below. |
+| **Device** | Your processor, or your graphics card in the NVIDIA edition. |
 | **Model** | Bigger models are more accurate but slower. |
 
 ### About the hotkey
@@ -93,18 +95,17 @@ the `F13`–`F24` keys, or a side button on your mouse.
 
 ## Using a graphics card
 
-There is one installer. It runs on your processor everywhere. If Kara detects
-an NVIDIA card, Settings offers to download its CUDA support after installation.
-You need no CUDA Toolkit; a current graphics driver is the only requirement.
+Download the **NVIDIA GPU edition** if you have a compatible NVIDIA card and a
+current driver. It includes the CUDA libraries it needs: no CUDA Toolkit and no
+second download after installation.
 
 **AMD and Intel cards are not supported yet.** ctranslate2, the engine
 underneath, has no backend for them on Windows, so Kara falls back to your
 processor and there is nothing in Settings that would change that. It is being
 worked on.
 
-**Device → auto** does the right thing: the card after its support is installed,
-or the processor otherwise. The **gpu** option appears only when the CUDA
-libraries really load.
+**Device → auto** uses the card when the NVIDIA edition can load CUDA, or the
+processor otherwise. The **gpu** option appears only when CUDA really loads.
 
 ### Running from source with a card
 
@@ -171,9 +172,8 @@ Spanish, English, Portuguese, French, German and Italian.
 
 ### Do I need a graphics card?
 
-No. The single download runs on your processor and works on any machine. If
-you have an NVIDIA card, Kara offers its optional GPU support from Settings;
-see [Using a graphics card](#using-a-graphics-card).
+No. The CPU edition works on any machine. The NVIDIA GPU edition is optional
+and is faster on compatible hardware; see [Using a graphics card](#using-a-graphics-card).
 
 ## Dictating numbers and punctuation
 
@@ -189,27 +189,26 @@ based on the first language detected. Kara's additional number conversions and
 spoken commands described below require a **fixed language**. Their settings
 are preserved while disabled in Automatic.
 
-Numbers are typed as numbers. Say "mil doscientos pesos" and you get
-`1200 pesos`; "son las tres cuarenta y cinco" gives `son las 3:45`; "un veinte
-por ciento" gives `un 20%`. A bare "un", "una" or "uno" is left as a word, since
-they are articles far more often than they are the number.
+Numbers are typed as numbers. Say "one thousand two hundred dollars" and you
+get `1200 dollars`; "three point five" gives `3.5`; "fifty percent" gives
+`50%`. A bare "one" is left as a word, since it is more often a word than a
+number.
 
 For punctuation, say the name of the mark:
 
 | Say | Get |
 | --- | --- |
-| punto y aparte | a new paragraph |
-| nueva linea | a line break |
-| abre parentesis / cierra parentesis | ( ) |
-| signo de interrogacion | ? |
-| dos puntos | : |
-| punto y coma | ; |
-| arroba | @ |
+| new paragraph | a new paragraph |
+| new line | a line break |
+| open parenthesis / close parenthesis | ( ) |
+| question mark | ? |
+| semicolon | ; |
+| at sign | @ |
 
-These are all phrases nobody says by accident. Plain "coma" and "punto" are
-ordinary Spanish words -- "el punto de partida", "la coma va aca" -- so they are
-off by default. Settings -> TEXT has a switch that turns them on, and another
-that turns the whole thing off.
+These are all phrases nobody says by accident. Plain "comma" and "period" are
+ordinary English words -- "the period of time", "the comma goes here" -- so
+they are off by default. Settings -> TEXT has a switch that turns them on, and
+another that turns the whole thing off.
 
 ## Your privacy
 

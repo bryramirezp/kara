@@ -15,7 +15,13 @@
 ; the version is written down in exactly one place. The fallback only matters
 ; when someone runs ISCC by hand.
 #ifndef AppVersion
-  #define AppVersion "0.3.3"
+  #define AppVersion "0.3.4"
+#endif
+
+#ifdef GpuBuild
+  #define SetupFlavor "-GPU"
+#else
+  #define SetupFlavor ""
 #endif
 
 [Setup]
@@ -27,7 +33,9 @@ AppPublisherURL={#AppURL}
 AppSupportURL={#AppURL}/issues
 AppUpdatesURL={#AppURL}/releases
 
-DefaultDirName={localappdata}\Programs\Kara
+; Use the process environment rather than the Shell Folder registry value.
+; This keeps the per-user install working in restricted Windows profiles too.
+DefaultDirName={%LOCALAPPDATA}\Programs\Kara
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
@@ -35,7 +43,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 
 OutputDir=..\dist
-OutputBaseFilename=Kara-Setup-{#AppVersion}
+OutputBaseFilename=Kara-Setup{#SetupFlavor}-{#AppVersion}
 SetupIconFile=..\assets\icon.ico
 UninstallDisplayIcon={app}\{#AppExeName}
 WizardStyle=modern
@@ -81,6 +89,11 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 ; 0.3.2 used this legacy mechanism.  Remove it on every install so an upgrade
 ; cannot start two copies at login.
 Type: files; Name: "{userstartup}\{#AppName}.lnk"
+; CPU replaces GPU as well as GPU replacing CPU. Inno only copies source files,
+; so remove CUDA left behind by a prior NVIDIA edition without touching settings.
+#ifndef GpuBuild
+Type: filesandordirs; Name: "{app}\_internal\nvidia"
+#endif
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#AppName}}"; \
@@ -115,7 +128,7 @@ begin
     if not WizardIsTaskSelected('startup') then
       RegDeleteValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'Kara');
 
-    SettingsDir := ExpandConstant('{localappdata}\Kara');
+    SettingsDir := GetEnv('LOCALAPPDATA') + '\Kara';
     SettingsFile := SettingsDir + '\settings.json';
     // Only seed on a first install. An upgrade or repair must never overwrite
     // a UI language the user already chose from inside the app -- that would

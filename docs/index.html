@@ -40,9 +40,9 @@
   "applicationCategory": "UtilitiesApplication",
   "applicationSubCategory": "Speech Recognition",
   "operatingSystem": "Windows 10, Windows 11",
-  "softwareVersion": "0.3.3",
+  "softwareVersion": "0.3.4",
   "url": "https://bryramirezp.github.io/kara/",
-  "downloadUrl": "https://github.com/bryramirezp/kara/releases/download/v0.3.3/Kara-Setup-0.3.3.exe",
+  "downloadUrl": "https://github.com/bryramirezp/kara/releases/download/v0.3.4/Kara-Setup-0.3.4.exe",
   "codeRepository": "https://github.com/bryramirezp/kara",
   "license": "https://opensource.org/licenses/MIT",
   "isAccessibleForFree": true,
@@ -53,7 +53,7 @@
     "Types into any Windows application",
     "Six languages: Spanish, English, Portuguese, French, German, Italian",
     "Keeps every sentence you dictate in the window",
-    "NVIDIA graphics card acceleration when run from source"
+    "NVIDIA graphics card acceleration with the NVIDIA GPU edition"
   ],
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
   "author": { "@type": "Person", "name": "Bryan Ramírez", "url": "https://github.com/bryramirezp" }
@@ -76,7 +76,7 @@
     { "@type": "Question", "name": "Which languages does it support?",
       "acceptedAnswer": { "@type": "Answer", "text": "Spanish, English, Portuguese, French, German and Italian. You pick one, which makes it faster and more accurate than guessing the language on every recording." } },
     { "@type": "Question", "name": "Do I need a graphics card?",
-      "acceptedAnswer": { "@type": "Answer", "text": "No. The download runs on your processor. If you have an NVIDIA graphics card and install from source, it can use it and get much faster." } },
+      "acceptedAnswer": { "@type": "Answer", "text": "No. The CPU edition runs on your processor. If you have a compatible NVIDIA graphics card and a current driver, install the NVIDIA GPU edition for faster transcription." } },
     { "@type": "Question", "name": "Is my voice sent anywhere?",
       "acceptedAnswer": { "@type": "Answer", "text": "No. Nothing leaves your computer. The microphone is only open while you hold the key, so nothing is listening the rest of the time." } },
     { "@type": "Question", "name": "Which key does it use?",
@@ -95,7 +95,7 @@
     <nav><a href="install.html">Install guide</a></nav>
     <span class="grow"></span>
     <button class="theme-toggle" data-theme-toggle type="button"></button>
-    <a class="btn" data-pick-topbar href="https://github.com/bryramirezp/kara/releases/download/v0.3.3/Kara-Setup-0.3.3.exe">Download</a>
+    <a class="btn" data-pick-topbar href="https://github.com/bryramirezp/kara/releases/download/v0.3.4/Kara-Setup-0.3.4.exe">Download</a>
   </div>
 </div>
 
@@ -163,15 +163,19 @@
 
     <div class="pick">
       <div class="pick-row">
-        <a class="btn pick-btn pick-cpu" id="heroBtn" href="https://github.com/bryramirezp/kara/releases/download/v0.3.3/Kara-Setup-0.3.3.exe">
-          <span class="pick-label">Download for Windows</span>
-          <small><!--dl-size-->73 MB<!--/dl-size--> · works on any PC</small>
+        <a class="btn pick-btn pick-gpu" id="heroBtn" data-pick-gpu href="https://github.com/bryramirezp/kara/releases/download/v0.3.4/Kara-Setup-GPU-0.3.4.exe">
+          <span class="pick-label">NVIDIA GPU — faster</span>
+          <small>GPU NVIDIA compatible · driver required</small>
+        </a>
+        <a class="btn btn-ghost pick-btn pick-cpu" data-pick-cpu href="https://github.com/bryramirezp/kara/releases/download/v0.3.4/Kara-Setup-0.3.4.exe">
+          <span class="pick-label">CPU — works on any PC</span>
+          <small><!--dl-size-->73 MB<!--/dl-size--> · smaller download</small>
         </a>
       </div>
     </div>
-    <p class="sub">Have an NVIDIA card? Kara offers its optional GPU support from Settings after installation.</p>
+    <p class="sub">The NVIDIA edition includes its CUDA support. No download is needed after installation.</p>
     <p class="sub">
-      Kara <!--app-version-->0.3.3<!--/app-version--> · Windows 10 and 11 · nothing else to install<br>
+      Kara <!--app-version-->0.3.4<!--/app-version--> · Windows 10 and 11 · nothing else to install<br>
       <a href="install.html">Step by step install guide</a>
       · <a href="https://github.com/bryramirezp/kara/releases/latest">All files and release notes</a>
     </p>
@@ -218,13 +222,6 @@
         <img class="on-light" src="screenshot-main-dark.png"
              alt="The Kara window in its dark theme, showing text that was just dictated">
         <figcaption>What you said &mdash; shown in the other theme</figcaption>
-      </figure>
-      <figure>
-        <img class="on-dark"  src="screenshot-settings-dark.png"
-             alt="The settings panel in its dark theme, with appearance, hotkey and microphone options">
-        <img class="on-light" src="screenshot-settings-light.png"
-             alt="The settings panel in its light theme, with appearance, hotkey and microphone options">
-        <figcaption>Settings, matching this page</figcaption>
       </figure>
     </div>
   </div>
@@ -284,7 +281,7 @@
       </details>
       <details>
         <summary>Do I need a graphics card?</summary>
-        <p>No. The download runs on your processor. If you have an NVIDIA card and install from the source code, it can use it and get much faster.</p>
+        <p>No. The CPU edition runs on your processor. If you have a compatible NVIDIA card and a current driver, install the NVIDIA GPU edition for faster transcription.</p>
       </details>
       <details>
         <summary>Is my voice sent anywhere?</summary>
@@ -316,6 +313,27 @@
     new IntersectionObserver(function (entries) {
       bar.classList.toggle('show', !entries[0].isIntersecting);
     }, { rootMargin: '-10px 0px 0px 0px' }).observe(btn);
+  }
+
+  // Browsers may withhold GPU information, so this can only refine the copy;
+  // it must never hide CPU or decide which installer a visitor receives.
+  var gpu = document.querySelector('[data-pick-gpu]');
+  if (gpu && navigator.gpu && navigator.gpu.requestAdapter) {
+    navigator.gpu.requestAdapter().then(function (adapter) {
+      if (!adapter || !adapter.info) return null;
+      return adapter.info;
+    }).then(function (info) {
+      if (!info || !/nvidia/i.test([
+        info.vendor, info.architecture, info.description, info.device
+      ].join(' '))) return;
+      gpu.querySelector('.pick-label').textContent =
+        'NVIDIA GPU — recommended for your PC';
+      var topbar = document.querySelector('[data-pick-topbar]');
+      if (topbar) {
+        topbar.href = gpu.href;
+        topbar.textContent = 'Download for NVIDIA';
+      }
+    }).catch(function () {});
   }
 })();
 </script>

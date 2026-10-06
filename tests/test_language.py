@@ -113,6 +113,27 @@ def test_silence_and_empty_results_do_not_paste(pipeline):
     p.app.pyautogui.hotkey.assert_not_called()
 
 
+def test_mouse_hotkey_records_trace_timing(kara, monkeypatch):
+    from unittest.mock import Mock
+
+    start_recording = Mock()
+    stop_and_transcribe = Mock()
+    monkeypatch.setattr(kara, "_current_hotkey_str", "mouse:x2")
+    monkeypatch.setattr(kara, "_may_record", lambda: True)
+    monkeypatch.setattr(kara, "start_recording", start_recording)
+    monkeypatch.setattr(kara, "stop_and_transcribe", stop_and_transcribe)
+    monkeypatch.setattr(kara, "_trigger_down", False)
+    monkeypatch.setattr(kara, "recording", False)
+
+    kara.on_mouse_click(0, 0, kara.Button.x2, True)
+    kara.on_mouse_click(0, 0, kara.Button.x2, False)
+
+    kara.trace.start.assert_called_once_with()
+    kara.trace.mark.assert_called_once_with("hold")
+    start_recording.assert_called_once_with()
+    stop_and_transcribe.assert_called_once_with()
+
+
 def test_model_error_releases_lock_and_next_dictation_works(pipeline):
     p = pipeline
     events = p.run("", fail=RuntimeError("test model failure"))

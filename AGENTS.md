@@ -65,6 +65,48 @@ Cada cambio de comportamiento debe dejar trazabilidad adecuada:
 - Antes de un release, confirma que la versión del nombre coincide con la
   versión declarada por la aplicación, el tag y los enlaces de descarga.
 
+## Disciplina de build y release
+
+- `dist/` es temporal, no un archivo histórico: el historial vive en Git,
+  tags y releases. Límpialo solo antes de un build y tras confirmar que no
+  hay procesos de PyInstaller, Inno Setup o validación en curso.
+- Cada release de Kara genera exactamente dos instaladores versionados:
+  `Kara-Setup-<versión>.exe` (CPU) y
+  `Kara-Setup-GPU-<versión>.exe` (NVIDIA). No generar portable sin una
+  necesidad explícita de producto.
+- Construye CPU y GPU desde payloads limpios. CPU no puede incluir runtime
+  NVIDIA; GPU debe incluir todas sus dependencias NVIDIA.
+- Genera `SHA256SUMS.txt` al final del build. Debe listar únicamente los
+  artefactos de la versión actual y sus hashes deben verificarse antes de
+  publicar.
+- Antes de recomendar un release, valida build limpio, estructura de ambas
+  variantes, hashes, instalación limpia, migraciones CPU ↔ GPU, fallback CPU
+  cuando CUDA no carga y la ausencia de descargas internas de soporte NVIDIA.
+- Los tags y assets publicados son inmutables: nunca usar `--clobber` ni
+  reemplazar un asset. Si un release publicado falla, publicar una versión
+  nueva.
+
+### Flujo operativo de publicación
+
+1. Trabaja y valida en una rama o en `main`; no crees un tag hasta que el
+   árbol de trabajo esté revisado, el changelog tenga la sección de la versión
+   y `__version__`, documentación y nombres de artefactos coincidan.
+2. Confirma los cambios y sube primero el commit a `main`. Comprueba que el
+   commit remoto es exactamente el que se quiere liberar.
+3. Con autorización explícita, crea un tag anotado e inmutable con SemVer:
+   `git tag -a vX.Y.Z -m "Kara X.Y.Z"`, y sube únicamente ese tag con
+   `git push origin vX.Y.Z`.
+4. El tag dispara `.github/workflows/release.yml` en un runner Windows limpio.
+   El workflow verifica versión y documentación, construye CPU y GPU, ejecuta
+   pruebas, valida instalación/migración, firma si existe la credencial y
+   adjunta ambos instaladores más `SHA256SUMS.txt` a un **draft release**.
+5. Revisa ese draft en la lista de Releases: título, notas tomadas de
+   `CHANGELOG.md`, los dos nombres versionados, hashes y firmas. Solo entonces
+   publícalo. Un release publicado no se modifica; un error requiere una
+   versión nueva.
+6. Para ensayar el pipeline sin crear tag, usa `workflow_dispatch`; sus
+   artefactos quedan como artefactos temporales de Actions, no como release.
+
 ## Auditoría antes de release
 
 Antes de recomendar una publicación, revisa:

@@ -16,6 +16,7 @@ build/
 dist/
 Output/
 *.manifest
+.cache/
 
 # Python
 __pycache__/

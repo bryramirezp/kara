@@ -42,7 +42,7 @@
   "tool": [{ "@type": "HowToTool", "name": "A PC running Windows 10 or 11" }],
   "step": [
     { "@type": "HowToStep", "name": "Download the installer",
-      "text": "Download Kara-Setup-0.3.3.exe from the releases page. It is about 73 MB.",
+      "text": "Download Kara-Setup-0.3.4.exe from the releases page. It is about 73 MB.",
       "url": "https://bryramirezp.github.io/kara/install.html#download" },
     { "@type": "HowToStep", "name": "Get past the Windows warning",
       "text": "Windows shows a blue box saying it protected your PC, because the installer is not signed. Click More info, then Run anyway.",
@@ -72,7 +72,7 @@
     <nav><a href="install.html" aria-current="page">Install guide</a></nav>
     <span class="grow"></span>
     <button class="theme-toggle" data-theme-toggle type="button"></button>
-    <a class="btn" href="https://github.com/bryramirezp/kara/releases/download/v0.3.3/Kara-Setup-0.3.3.exe">Download</a>
+    <a class="btn" href="https://github.com/bryramirezp/kara/releases/download/v0.3.4/Kara-Setup-0.3.4.exe">Download</a>
   </div>
 </div>
 
@@ -97,13 +97,13 @@
       <li id="download">
         <span class="step-title">Download the installer</span>
         <p>
-          One file, about <!--dl-size-->73 MB<!--/dl-size-->. It works on Windows 10 and Windows 11, 64-bit.
-          If you have an NVIDIA graphics card, Kara offers its optional GPU support
-          in Settings after installation.
-          You do not need Python or anything else installed first.
+          Choose the CPU edition for any PC, or the NVIDIA edition for a compatible
+          NVIDIA card with a current driver. Both work on Windows 10 and Windows 11,
+          64-bit, and neither needs Python or a CUDA Toolkit.
         </p>
         <div class="dl-row">
-          <a class="btn" href="https://github.com/bryramirezp/kara/releases/download/v0.3.3/Kara-Setup-0.3.3.exe">Download Kara-Setup-0.3.3.exe</a>
+          <a class="btn" href="https://github.com/bryramirezp/kara/releases/download/v0.3.4/Kara-Setup-0.3.4.exe">CPU — Kara-Setup-0.3.4.exe</a>
+          <a class="btn btn-ghost" href="https://github.com/bryramirezp/kara/releases/download/v0.3.4/Kara-Setup-GPU-0.3.4.exe">NVIDIA — Kara-Setup-GPU-0.3.4.exe</a>
           <span class="meta">or pick a version from <a href="https://github.com/bryramirezp/kara/releases/latest">all releases</a></span>
         </div>
       </li>
@@ -149,7 +149,7 @@
                 starting. Running this app might put your PC at risk.
               </p>
               <p class="win-meta">
-                App:&nbsp; <b>Kara-Setup-0.3.3.exe</b><br>
+                App:&nbsp; <b>Kara-Setup-0.3.4.exe</b><br>
                 Publisher:&nbsp; <b>Unknown publisher</b>
               </p>
             </div>
@@ -182,7 +182,7 @@
           publishes the fingerprint of the exact file it shipped. Open Terminal
           and run this:
         </p>
-<pre>Get-FileHash "$HOME\Downloads\Kara-Setup-0.3.3.exe" -Algorithm SHA256</pre>
+<pre>Get-FileHash "$HOME\Downloads\Kara-Setup-0.3.4.exe" -Algorithm SHA256</pre>
         <p>
           Compare what it prints against
           <a href="https://github.com/bryramirezp/kara/releases/latest">SHA256SUMS.txt</a>

@@ -1,6 +1,6 @@
 # Signing a Kara release
 
-Kara 0.3.3 signs `Kara.exe`, the installer and the uninstaller when the release
+Kara 0.3.4 signs `Kara.exe`, both installers and their uninstallers when the release
 environment supplies `KARA_SIGN_COMMAND`. The command must contain `{file}`;
 Kara substitutes the path of the file being signed.
 

@@ -33,15 +33,22 @@ DEFAULT = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")),
                        "Kara", "trace.jsonl")
 
 
-def _parse(text, label, rows):
+def _parse(text, label, rows, seen):
     for n, line in enumerate(text.splitlines(), 1):
         line = line.strip()
         if not line:
             continue
         try:
-            rows.append(json.loads(line))
+            row = json.loads(line)
         except ValueError:
             print("  skipped %s:%d, not JSON" % (label, n), file=sys.stderr)
+            continue
+        # One export may exist as a ZIP, an extracted folder and a copied log.
+        # Exact JSON equality is a copy, not another dictation.
+        key = json.dumps(row, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        if key not in seen:
+            seen.add(key)
+            rows.append(row)
 
 
 def load(target):
@@ -58,7 +65,7 @@ def load(target):
     else:
         paths = [target]
 
-    rows = []
+    rows, seen = [], set()
     for p in paths:
         if not os.path.exists(p):
             continue
@@ -68,12 +75,12 @@ def load(target):
                     for name in z.namelist():
                         if name.endswith(".jsonl"):
                             _parse(z.read(name).decode("utf-8", "replace"),
-                                   "%s!%s" % (os.path.basename(p), name), rows)
+                                   "%s!%s" % (os.path.basename(p), name), rows, seen)
             except (zipfile.BadZipFile, OSError) as e:
                 print("  skipped %s: %s" % (p, e), file=sys.stderr)
             continue
         with io.open(p, encoding="utf-8") as f:
-            _parse(f.read(), p, rows)
+            _parse(f.read(), p, rows, seen)
     return rows, paths
 
 
@@ -185,7 +192,7 @@ def main():
         print("Kara writes this file on its own now, so an empty one means the "
               "app has not transcribed anything yet on that machine.")
         return 1
-    print("read %d cycles from %d file(s)" % (len(rows), len(paths)))
+    print("read %d unique cycles from %d file(s)" % (len(rows), len(paths)))
     report(rows)
     return 0
 

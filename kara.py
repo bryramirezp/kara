@@ -5,7 +5,7 @@ Hold the configured hotkey to record. Release to transcribe and paste.
 Default hotkey: Insert
 """
 
-__version__ = "0.3.3"
+__version__ = "0.3.4"
 
 import sys
 import os
@@ -23,15 +23,8 @@ import platform
 import zipfile
 from collections import deque
 
-import gpu_component
-
-# True in any downloadable build. It no longer says anything about graphics
-# cards: there are two builds now. The ordinary one leaves the CUDA libraries out,
-# because they weigh 925 MB against 190 MB for the whole rest of the program. The
-# GPU one carries them and is that much bigger.
-#
-# Which of the two is running is not something to infer from a flag. Ask
-# cuda_libs_present(), which answers by loading the library.
+# The CPU and NVIDIA editions share the same application and settings.  Ask
+# whether CUDA can really load rather than guessing from the installer name.
 IS_PACKAGED = getattr(sys, "frozen", False)
 SOURCE_URL  = "https://github.com/bryramirezp/kara"
 
@@ -42,15 +35,9 @@ if IS_PACKAGED:
     os.environ["TCL_LIBRARY"] = os.path.join(_tk_root, "tcl", "tcl8.6")
     os.environ["TK_LIBRARY"] = os.path.join(_tk_root, "tcl", "tk8.6")
 
-# Keep optional CUDA files out of the signed application folder.  A per-user
-# install already owns this location, and keeping the payload here means a GPU
-# update never rewrites Kara's executable or its installer-managed files.
 _LOCAL        = os.environ.get("LOCALAPPDATA", os.path.expanduser("~"))
 APP_DIR       = os.path.join(_LOCAL, "Kara")
 SETTINGS_FILE = os.path.join(APP_DIR, "settings.json")
-GPU_MANIFEST_FILE = (os.path.join(os.path.dirname(sys.executable), "_internal", "assets",
-                                  "gpu-component.json") if IS_PACKAGED else
-                     os.path.join(os.path.dirname(__file__), "assets", "gpu-component.json"))
 
 # ── Single instance guard ─────────────────────────────────────────────────────
 def ensure_single_instance():
@@ -90,17 +77,6 @@ def _add_nvidia_dlls():
         meipass = getattr(sys, "_MEIPASS", None)
         if meipass:
             roots.append(meipass)
-
-    # Versioned, hash-verified GPU components live in Local AppData rather than
-    # beside Kara.exe.  A bad or partial download therefore cannot alter the
-    # installed application, and a later component can sit alongside an older
-    # one until it has passed validation.
-    try:
-        manifest = gpu_component.load_manifest(GPU_MANIFEST_FILE)
-        if gpu_component.is_installed(APP_DIR, manifest):
-            roots.append(gpu_component.component_dir(APP_DIR, manifest))
-    except gpu_component.GpuComponentError:
-        pass
 
     for getter in ("getsitepackages", "getusersitepackages"):
         if hasattr(site, getter):
@@ -149,28 +125,6 @@ def cuda_libs_present():
             continue
     return False
 
-
-def nvidia_driver_detected():
-    """True when ctranslate2 can see an NVIDIA driver, before CUDA DLLs exist."""
-    try:
-        import ctranslate2
-        return ctranslate2.get_cuda_device_count() > 0
-    except Exception:
-        return False
-
-
-def gpu_component_manifest():
-    """The optional component this exact Kara build permits, if any."""
-    try:
-        return gpu_component.load_manifest(GPU_MANIFEST_FILE)
-    except gpu_component.GpuComponentError:
-        return None
-
-
-def gpu_component_can_be_installed():
-    manifest = gpu_component_manifest()
-    return bool(IS_PACKAGED and manifest and nvidia_driver_detected()
-                and not gpu_component.is_installed(APP_DIR, manifest))
 
 _add_nvidia_dlls()
 
@@ -1069,7 +1023,7 @@ def load_model(device, compute, model_size, on_done=None, on_error=None):
             # telling someone running the downloaded build to use pip would send
             # them looking for something that is not there.
             if IS_PACKAGED:
-                raise RuntimeError(karai18n.t("err_gpu_support_missing"))
+                raise RuntimeError(karai18n.t("err_cpu_only_packaged"))
             raise RuntimeError(karai18n.t("err_cpu_only_source"))
         # Downloading outside the lock: it can take minutes on a first run, and
         # holding the lock there would freeze a transcription already in flight.
@@ -1447,11 +1401,13 @@ def on_mouse_click(x, y, button, pressed):
         if not _may_record():
             return
         _trigger_down = True
+        trace.start()
         with status_lock:
             recording = True
         start_recording()
     elif not pressed and _trigger_down:
         _trigger_down = False
+        trace.mark("hold")
         with status_lock:
             recording = False
         stop_and_transcribe()
@@ -2118,22 +2074,6 @@ class KaraApp(ctk.CTk):
         self._device_var.trace_add("write", lambda *_: self._device_hint.configure(
             text=self._device_hint_text()))
 
-        # The single installer has no CUDA DLLs.  Where an NVIDIA driver is
-        # visible, offer the separately verified runtime here instead of making
-        # people decide which download they need before they have opened Kara.
-        self._gpu_support_btn = None
-        self._gpu_support_hint = None
-        if gpu_component_can_be_installed():
-            section(karai18n.t("section_gpu_support"))
-            self._gpu_support_btn = ctk.CTkButton(
-                body, text=karai18n.t("btn_install_gpu_support"), height=36,
-                corner_radius=9, fg_color=t["bg_button"],
-                hover_color=t["bg_button_hover"], text_color=t["text_on_button"],
-                font=("Segoe UI Semibold", 12), command=self._install_gpu_support,
-            )
-            self._gpu_support_btn.pack(fill="x", pady=(0, 4))
-            self._gpu_support_hint = hint(karai18n.t("hint_gpu_support"))
-
         # ── Model
         section(karai18n.t("section_model"))
         self._model_var = ctk.StringVar(value=self._settings.get("model", "auto"))
@@ -2381,46 +2321,6 @@ class KaraApp(ctk.CTk):
         if v == "cpu":
             return karai18n.t("hint_device_cpu")
         return karai18n.t("hint_device_gpu")
-
-    def _install_gpu_support(self):
-        """Download optional CUDA DLLs away from Tk's event loop."""
-        manifest = gpu_component_manifest()
-        if not manifest or not self._gpu_support_btn:
-            return
-        self._gpu_support_btn.configure(state="disabled")
-        self._gpu_support_hint.configure(text=karai18n.t("status_gpu_download_start"))
-
-        def set_progress(received, total):
-            percent = min(100, int(received * 100 / total)) if total else 0
-            self.after(0, lambda: self._gpu_support_hint and self._gpu_support_hint.configure(
-                text=karai18n.t("status_gpu_downloading", percent=percent)))
-
-        def work():
-            global GPU_AVAILABLE, _hardware
-            try:
-                gpu_component.download_and_install(APP_DIR, manifest, set_progress)
-                _add_nvidia_dlls()
-                GPU_AVAILABLE = cuda_libs_present()
-                _hardware = None
-                if not GPU_AVAILABLE:
-                    raise gpu_component.GpuComponentError(
-                        "CUDA libraries could not be loaded after installation.")
-            except Exception as exc:
-                self.after(0, lambda: (
-                    self._gpu_support_hint.configure(
-                        text=karai18n.t("status_gpu_download_failed", err=exc)),
-                    self._gpu_support_btn.configure(
-                        state="normal", text=karai18n.t("btn_install_gpu_support")),
-                ))
-                return
-
-            def done():
-                ui_queue.put(("log", karai18n.t("log_gpu_support_ready"), "ok"))
-                # Rebuilding makes the GPU device option visible immediately.
-                self._rebuild_ui()
-            self.after(0, done)
-
-        threading.Thread(target=work, daemon=True).start()
 
     def _export_diagnostics(self):
         """Off the UI thread: listing video adapters shells out to PowerShell."""

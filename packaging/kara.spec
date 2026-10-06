@@ -4,9 +4,8 @@
     py -3 -m PyInstaller --noconfirm packaging/kara.spec
     set KARA_GPU=1 && py -3 -m PyInstaller ... packaging/kara.spec
 
-The normal build is the one small CPU application.  The GPU invocation is only
-an internal release step: packaging/build.py extracts its NVIDIA DLL tree into
-the optional, verified Kara-GPU zip and never produces a second installer.
+The normal build is the small CPU application.  The GPU invocation produces a
+second, self-contained NVIDIA installer.
 
 onedir rather than onefile: onefile unpacks the whole thing into a temporary
 folder on every single launch, which for 190 MB is a wait before anything even
@@ -25,7 +24,6 @@ print("== Kara spec: %s build ==" % ("GPU" if GPU else "processor-only"))
 
 datas = [
     (os.path.join(ROOT, "assets", "icon.ico"), "assets"),
-    (os.path.join(ROOT, "assets", "gpu-component.json"), "assets"),
 ]
 binaries = []
 hiddenimports = []

@@ -1,9 +1,11 @@
 name: Release
 
-# Push a tag and this builds the installer, the portable zip and the hashes,
-# then publishes them:
+# Push a tag and this builds both installers and their hashes, then creates a
+# draft release for a maintainer to inspect and publish:
 #
-#     git tag v0.2.0 && git push origin v0.2.0
+#     git push origin main
+#     git tag -a v0.2.0 -m "Kara 0.2.0"
+#     git push origin v0.2.0
 #
 # Run it by hand to check a build without publishing anything.
 
@@ -39,7 +41,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-gpu.txt pyinstaller
+          pip install -r requirements-gpu.txt pyinstaller pytest
 
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
@@ -63,11 +65,26 @@ jobs:
       - name: Check the docs quote this version
         run: python tools/stamp_docs.py --check
 
-      - name: Build the optional NVIDIA component
-        run: python packaging/build.py --gpu-component
-
-      - name: Build the single installer
+      - name: Build CPU and NVIDIA installers
         run: python packaging/build.py
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Verify clean install and edition migration
+        shell: pwsh
+        run: |
+          $cpu = Get-Item dist/Kara-Setup-*.exe | Where-Object Name -notmatch '-GPU-'
+          $gpu = Get-Item dist/Kara-Setup-GPU-*.exe
+          $app = Join-Path $env:LOCALAPPDATA 'Programs\Kara'
+          foreach ($installer in @($cpu, $gpu, $cpu)) {
+            Start-Process -Wait -FilePath $installer.FullName -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART'
+            if (-not (Test-Path (Join-Path $app 'Kara.exe'))) { throw "Kara was not installed" }
+            $hasNvidia = Test-Path (Join-Path $app '_internal\nvidia')
+            if (($installer.Name -match '-GPU-') -ne $hasNvidia) {
+              throw "$($installer.Name) left the wrong NVIDIA payload"
+            }
+          }
 
       - name: Stamp both sizes into the docs
         run: python tools/stamp_docs.py
@@ -106,8 +123,6 @@ jobs:
           name: Kara
           path: |
             dist/Kara-Setup-*.exe
-            dist/Kara-GPU-*.zip
-            dist/Kara-*-portable.zip
             dist/SHA256SUMS*.txt
 
       - name: Publish
@@ -119,8 +134,6 @@ jobs:
           $tag = "${{ github.ref_name }}"
           $files = @(
             (Get-Item dist/Kara-Setup*.exe).FullName
-            (Get-Item dist/Kara-GPU-*.zip).FullName
-            (Get-Item dist/Kara-*-portable.zip).FullName
             (Get-Item dist/SHA256SUMS*.txt).FullName
           ) | Sort-Object -Unique
           # Notes come from CHANGELOG.md rather than --generate-notes, which
@@ -135,8 +148,7 @@ jobs:
           # the gh CLI publishes one and then triggers this workflow.
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) {
-            gh release upload $tag @files --clobber
-            gh release edit $tag --notes-file notes.md
+            throw "release $tag already exists; versioned assets are immutable"
           } else {
-            gh release create $tag @files --title "Kara $tag" --notes-file notes.md
+            gh release create $tag @files --title "Kara $tag" --notes-file notes.md --draft
           }

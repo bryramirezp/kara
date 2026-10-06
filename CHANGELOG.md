@@ -7,7 +7,27 @@ All notable changes to Kara. The format follows
 Numbered versions below are published releases with installers:
 [all releases](https://github.com/bryramirezp/kara/releases).
 
-## [0.3.3] - Unreleased
+## [0.3.4] - 2026-10-05
+
+### Changed
+
+- The website now publishes `robots.txt` with its sitemap location so crawlers
+  can discover its public pages.
+- **Two self-contained installers.** `Kara-Setup` is the CPU edition and
+  `Kara-Setup-GPU` includes CUDA for compatible NVIDIA cards. They share their
+  installation, settings and downloaded models, so either edition can replace
+  the other without losing user data.
+- CUDA is no longer downloaded from Settings. This removes the release-asset
+  dependency that could reject an otherwise valid NVIDIA download.
+
+### Fixed
+
+- Diagnostics now trace press-to-record timing for mouse hotkeys, matching the
+  keyboard path.
+- The diagnostics report no longer counts the same trace again when an export
+  ZIP and its extracted copies are analysed together.
+
+## [0.3.3] - 2026-10-04
 
 ### Changed
 
@@ -240,6 +260,7 @@ the website advertises.
 
 First release, under the name Dictation Tool.
 
+[0.3.4]: https://github.com/bryramirezp/kara/releases/tag/v0.3.4
 [0.3.2]: https://github.com/bryramirezp/kara/releases/tag/v0.3.2
 [0.3.3]: https://github.com/bryramirezp/kara/releases/tag/v0.3.3
 [0.3.1]: https://github.com/bryramirezp/kara/releases/tag/v0.3.1

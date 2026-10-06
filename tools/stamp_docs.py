@@ -114,7 +114,7 @@ def rules(ver, mb):
     # the thirty-four lines in between.
     #
     URL = (r"(https://github\.com/bryramirezp/kara/releases/download/)"
-           r"v[^/\s\"')]+(/Kara-Setup-)[^\s\"')]+(\.exe)")
+           r"v[^/\s\"')]+(/Kara-Setup(?:-GPU)?-)[^\s\"')]+(\.exe)")
     for rel in ("README.md", "docs/index.html", "docs/install.html"):
         r.append((rel, URL, r"\g<1>v%s\g<2>%s\g<3>" % (ver, ver)))
 
