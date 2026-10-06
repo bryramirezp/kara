@@ -82,9 +82,11 @@ Cada cambio de comportamiento debe dejar trazabilidad adecuada:
 - Antes de recomendar un release, valida build limpio, estructura de ambas
   variantes, hashes, instalación limpia, migraciones CPU ↔ GPU, fallback CPU
   cuando CUDA no carga y la ausencia de descargas internas de soporte NVIDIA.
-- Los tags y assets publicados son inmutables: nunca usar `--clobber` ni
-  reemplazar un asset. Si un release publicado falla, publicar una versión
-  nueva.
+- Los tags asociados a un release publicado y sus assets son inmutables: nunca
+  usar `--clobber` ni reemplazar un asset. Si un release publicado falla,
+  publicar una versión nueva. Un tag cuyo workflow falló antes de crear draft
+  o assets puede recrearse solo con autorización explícita y tras verificar
+  que GitHub no tiene release alguno para ese tag.
 
 ### Flujo operativo de publicación
 
