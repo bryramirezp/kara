@@ -147,9 +147,6 @@ def rules(ver, mb):
             ("docs/index.html",
              r"(<!--dl-size-->)[^<]*(<!--/dl-size-->)",
              r"\g<1>%s\g<2>" % size),
-            ("docs/install.html",
-             r"(<!--dl-size-->)[^<]*(<!--/dl-size-->)",
-             r"\g<1>%s\g<2>" % size),
             # JSON-LD cannot carry an HTML comment, so this one is anchored on
             # the sentence's own shape inside the string.
             ("docs/install.html",

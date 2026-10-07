@@ -22,6 +22,8 @@ Numbered versions below are published releases with installers:
 
 ### Fixed
 
+- The release build no longer fails while updating the install guide's
+  installer-size metadata.
 - Diagnostics now trace press-to-record timing for mouse hotkeys, matching the
   keyboard path.
 - The diagnostics report no longer counts the same trace again when an export
