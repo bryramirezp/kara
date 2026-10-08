@@ -53,7 +53,7 @@ Cada cambio de comportamiento debe dejar trazabilidad adecuada:
 - Conserva las versiones históricas del changelog como registro: no las reescribas para reflejar el presente.
 - Actualiza el `README.md` cuando cambien instalación, requisitos, uso, limitaciones o comportamiento visible.
 - Actualiza la documentación web o de producto cuando presente instrucciones que puedan quedar obsoletas.
-- Comprueba que nombres de artefactos, enlaces, versiones y comandos coincidan entre código, documentación y pipeline.
+- Comprueba que nombres de artefactos, enlaces, versiones y comandos coincidan entre código, documentación y proceso de publicación.
 
 ## Artefactos versionados
 
@@ -67,9 +67,15 @@ Cada cambio de comportamiento debe dejar trazabilidad adecuada:
 
 ## Disciplina de build y release
 
-- `dist/` es temporal, no un archivo histórico: el historial vive en Git,
-  tags y releases. Límpialo solo antes de un build y tras confirmar que no
-  hay procesos de PyInstaller, Inno Setup o validación en curso.
+- `dist/` conserva el último conjunto validado de artefactos para poder
+  reinstalarlo, inspeccionarlo o comparar hashes sin recompilar. El historial
+  de versiones publicadas vive en Git, tags y releases; no guardar múltiples
+  versiones locales sin una razón concreta.
+- Antes de un build, elimina solo artefactos obsoletos, logs e intermediarios;
+  conserva los dos instaladores y `SHA256SUMS.txt` de la última versión
+  validada hasta que su reemplazo haya terminado y se haya validado. Nunca
+  borres ni modifiques `dist/` mientras PyInstaller, Inno Setup o una
+  validación de instalación estén ejecutándose.
 - Cada release de Kara genera exactamente dos instaladores versionados:
   `Kara-Setup-<versión>.exe` (CPU) y
   `Kara-Setup-GPU-<versión>.exe` (NVIDIA). No generar portable sin una
@@ -84,30 +90,42 @@ Cada cambio de comportamiento debe dejar trazabilidad adecuada:
   cuando CUDA no carga y la ausencia de descargas internas de soporte NVIDIA.
 - Los tags asociados a un release publicado y sus assets son inmutables: nunca
   usar `--clobber` ni reemplazar un asset. Si un release publicado falla,
-  publicar una versión nueva. Un tag cuyo workflow falló antes de crear draft
-  o assets puede recrearse solo con autorización explícita y tras verificar
-  que GitHub no tiene release alguno para ese tag.
+  publicar una versión nueva. Un tag sin release puede recrearse solo con
+  autorización explícita y tras verificar que GitHub no tiene release ni
+  assets para ese tag.
 
 ### Flujo operativo de publicación
 
-1. Trabaja y valida en una rama o en `main`; no crees un tag hasta que el
-   árbol de trabajo esté revisado, el changelog tenga la sección de la versión
-   y `__version__`, documentación y nombres de artefactos coincidan.
-2. Confirma los cambios y sube primero el commit a `main`. Comprueba que el
-   commit remoto es exactamente el que se quiere liberar.
-3. Con autorización explícita, crea un tag anotado e inmutable con SemVer:
-   `git tag -a vX.Y.Z -m "Kara X.Y.Z"`, y sube únicamente ese tag con
-   `git push origin vX.Y.Z`.
-4. El tag dispara `.github/workflows/release.yml` en un runner Windows limpio.
-   El workflow verifica versión y documentación, construye CPU y GPU, ejecuta
-   pruebas, valida instalación/migración, firma si existe la credencial y
-   adjunta ambos instaladores más `SHA256SUMS.txt` a un **draft release**.
-5. Revisa ese draft en la lista de Releases: título, notas tomadas de
-   `CHANGELOG.md`, los dos nombres versionados, hashes y firmas. Solo entonces
-   publícalo. Un release publicado no se modifica; un error requiere una
-   versión nueva.
-6. Para ensayar el pipeline sin crear tag, usa `workflow_dispatch`; sus
-   artefactos quedan como artefactos temporales de Actions, no como release.
+La compilación y la publicación son fases separadas. Una solicitud de
+"subir" o "publicar" significa usar los instaladores ya construidos y
+validados en este entorno; nunca recompilar como parte de esa solicitud.
+
+1. Durante la fase de build, construye CPU y GPU aquí y completa las
+   validaciones indicadas arriba. Conserva los dos instaladores versionados
+   y `SHA256SUMS.txt` en `dist/`.
+2. Antes de proponer o ejecutar una publicación, comprueba el estado de Git,
+   la versión de `kara.py`, el changelog, la documentación y que ambos
+   instaladores de esa misma versión existan en `dist/`. Verifica sus hashes
+   contra `SHA256SUMS.txt` y confirma que corresponden al código que se va a
+   liberar. Si falta un archivo, la versión no coincide o no se validó el
+   build, detente: explica qué falta y propón compilar o validar primero. No
+   publiques artefactos antiguos ni recompiles por iniciativa propia ante una
+   solicitud que sea solo de publicación.
+3. Cuando todo esté listo, informa los resultados y pide aprobación explícita
+   para subir el commit/tag y crear o publicar el release, salvo que el usuario
+   ya haya autorizado claramente esas acciones para esa versión. Si falta
+   contexto para decidir, pregunta antes de actuar.
+4. Con esa autorización, sube primero el commit aprobado a `main` y verifica
+   el commit remoto. Crea y sube un tag anotado `vX.Y.Z` solo si aún no existe
+   y apunta al commit correcto. Nunca muevas un tag de un release publicado.
+5. Crea un **draft release** mediante GitHub CLI o API y adjunta exactamente
+   `Kara-Setup-X.Y.Z.exe`, `Kara-Setup-GPU-X.Y.Z.exe` y `SHA256SUMS.txt` desde
+   `dist/`. Comprueba título, notas del `CHANGELOG.md`, nombres, tamaños y
+   hashes remotos antes de publicarlo. No reemplaces assets existentes; si ya
+   hay un release para el tag, inspecciónalo y pide dirección ante cualquier
+   discrepancia.
+6. Publica el draft solo con autorización explícita del usuario. Un release
+   publicado no se modifica; un error requiere una versión nueva.
 
 ## Auditoría antes de release
 
@@ -115,7 +133,7 @@ Antes de recomendar una publicación, revisa:
 
 1. Versión y estado de Git.
 2. Changelog, README y documentación de instalación.
-3. Dependencias, build y pipeline de publicación.
+3. Dependencias, build y proceso de publicación.
 4. Integridad de artefactos y hashes.
 5. Firma de código, si el producto distribuye ejecutables.
 6. Instalación, actualización, desinstalación y arranque de la aplicación.

@@ -15,7 +15,7 @@ signtool sign /fd SHA256 /tr https://timestamp.example.invalid /td SHA256 /a {fi
 The timestamp service and certificate selector belong to the chosen provider.
 Do not commit a `.pfx` file, its password, or provider credentials.
 
-In GitHub, save the completed command as the `KARA_SIGN_COMMAND` repository
-secret. When it is configured, tagged releases sign Kara and its installer and
-the workflow verifies their Authenticode status. Without it, the release is
-published unsigned.
+For a local build, set `KARA_SIGN_COMMAND` in the build environment before
+running `packaging/build.py`. Verify the Authenticode signatures of the built
+application and both installers before approving publication. Without the
+command, the build is unsigned; do not claim it is signed in the release notes.

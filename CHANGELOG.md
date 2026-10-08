@@ -9,9 +9,10 @@ Numbered versions below are published releases with installers:
 
 ## Unreleased
 
-### Fixed
+### Changed
 
-- Release validation now has the Git history needed to check sitemap dates.
+- Releases now upload the locally validated installers; pushing a tag no longer
+  rebuilds or publishes them through GitHub Actions.
 
 ## [0.3.4] - 2026-10-05
 
