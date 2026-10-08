@@ -7,6 +7,12 @@ All notable changes to Kara. The format follows
 Numbered versions below are published releases with installers:
 [all releases](https://github.com/bryramirezp/kara/releases).
 
+## Unreleased
+
+### Fixed
+
+- Release validation now has the Git history needed to check sitemap dates.
+
 ## [0.3.4] - 2026-10-05
 
 ### Changed

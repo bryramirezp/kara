@@ -28,6 +28,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # stamp_docs.py reads page commit dates for the sitemap
 
       - uses: actions/setup-python@v5
         with:
